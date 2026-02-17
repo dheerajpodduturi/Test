@@ -380,6 +380,40 @@
       min-height: 290px;
       background: #f7fafc;
       padding: 12px;
+      transition: border-color .16s ease, background .16s ease;
+    }
+
+    .dropzone.drag-over {
+      border-color: var(--accent);
+      background: #eef9f9;
+    }
+
+    .dropzone .sort-item {
+      cursor: grab;
+    }
+
+    .sort-item.correct-place {
+      border-color: #1f9e5e;
+      background: #e8f8ef;
+    }
+
+    .sort-item.wrong-place {
+      border-color: #ef4444;
+      background: #ffefef;
+    }
+
+    .activity-feedback {
+      margin-top: 12px;
+      border: 1px solid #c9dfeb;
+      background: #eef8fd;
+      border-radius: 12px;
+      padding: 12px;
+      color: #224055;
+      display: none;
+    }
+
+    .activity-feedback.open {
+      display: block;
     }
 
     .reference { padding: 24px 28px; }
@@ -608,22 +642,25 @@
         <div class="dnd-grid">
           <div class="dnd-col">
             <h4>Items to Sort</h4>
-            <div class="sort-item"><span class="dots">⋮⋮</span>Hand hygiene between patients</div>
-            <div class="sort-item dragging"><span class="dots">⋮⋮</span>N95 respirator use</div>
-            <div class="sort-item"><span class="dots">⋮⋮</span>Gloves for blood contact</div>
-            <div class="sort-item"><span class="dots">⋮⋮</span>Negative pressure room</div>
-            <div class="sort-item"><span class="dots">⋮⋮</span>Safe sharps disposal</div>
+            <div class="dropzone" id="activityPool" data-zone="pool">
+              <div class="sort-item" draggable="true" data-id="hand-hygiene" data-correct-zone="standard"><span class="dots">⋮⋮</span>Hand hygiene between patients</div>
+              <div class="sort-item dragging" draggable="true" data-id="n95" data-correct-zone="transmission"><span class="dots">⋮⋮</span>N95 respirator use</div>
+              <div class="sort-item" draggable="true" data-id="gloves" data-correct-zone="standard"><span class="dots">⋮⋮</span>Gloves for blood contact</div>
+              <div class="sort-item" draggable="true" data-id="negative-pressure" data-correct-zone="transmission"><span class="dots">⋮⋮</span>Negative pressure room</div>
+              <div class="sort-item" draggable="true" data-id="sharps" data-correct-zone="standard"><span class="dots">⋮⋮</span>Safe sharps disposal</div>
+            </div>
           </div>
           <div class="dnd-col">
             <h4>Standard Precautions</h4>
-            <div class="dropzone"></div>
+            <div class="dropzone" data-zone="standard"></div>
           </div>
           <div class="dnd-col">
             <h4>Transmission-Based Precautions</h4>
-            <div class="dropzone"></div>
+            <div class="dropzone" data-zone="transmission"></div>
           </div>
         </div>
-        <button class="btn" style="margin-top:20px">Check My Answers</button>
+        <button class="btn" id="checkActivityBtn" style="margin-top:20px">Check My Answers</button>
+        <div class="activity-feedback" id="activityFeedback"></div>
       </section>
 
       <section id="reference" class="section card reference">
@@ -738,6 +775,73 @@
       options.find(o => o.dataset.correct === 'true')?.classList.add('correct');
       feedback.classList.add('open');
       submitBtn.disabled = true;
+    });
+
+    const dragItems = Array.from(document.querySelectorAll('.sort-item[draggable="true"]'));
+    const dropzones = Array.from(document.querySelectorAll('.dropzone[data-zone]'));
+    const activityFeedback = document.getElementById('activityFeedback');
+    const checkActivityBtn = document.getElementById('checkActivityBtn');
+    let activeDragId = null;
+
+    dragItems.forEach(item => {
+      item.addEventListener('dragstart', () => {
+        activeDragId = item.dataset.id;
+        item.classList.add('dragging');
+      });
+
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        dropzones.forEach(zone => zone.classList.remove('drag-over'));
+      });
+    });
+
+    dropzones.forEach(zone => {
+      zone.addEventListener('dragover', event => {
+        event.preventDefault();
+        zone.classList.add('drag-over');
+      });
+
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('drag-over');
+      });
+
+      zone.addEventListener('drop', event => {
+        event.preventDefault();
+        zone.classList.remove('drag-over');
+        if (!activeDragId) return;
+        const dragged = document.querySelector(`[data-id="${activeDragId}"]`);
+        if (!dragged) return;
+        zone.appendChild(dragged);
+      });
+    });
+
+    checkActivityBtn?.addEventListener('click', () => {
+      let placedCount = 0;
+      let correctCount = 0;
+
+      dragItems.forEach(item => {
+        item.classList.remove('correct-place', 'wrong-place');
+        const zone = item.parentElement?.dataset.zone;
+        if (zone && zone !== 'pool') {
+          placedCount += 1;
+          if (zone === item.dataset.correctZone) {
+            correctCount += 1;
+            item.classList.add('correct-place');
+          } else {
+            item.classList.add('wrong-place');
+          }
+        }
+      });
+
+      if (placedCount < dragItems.length) {
+        activityFeedback.textContent = 'Place all items into a category, then check your answers.';
+      } else if (correctCount === dragItems.length) {
+        activityFeedback.textContent = 'Excellent work. All actions are in the correct precaution category.';
+      } else {
+        activityFeedback.textContent = `${correctCount} of ${dragItems.length} items are correctly classified. Move the highlighted items and try again.`;
+      }
+
+      activityFeedback.classList.add('open');
     });
 
     document.querySelectorAll('.acc-head').forEach(head => {
