@@ -299,6 +299,8 @@
     }
 
     .feedback.open { display: block; }
+    .feedback.correct { border-color: #bde7cb; background: #e9f8ef; color: #1f5f3f; }
+    .feedback.incorrect { border-color: #f3c9c9; background: #fff1f1; color: #7a2020; }
 
     .reading { padding: 30px 32px; }
     .reading p { color: #33465a; line-height: 1.7; margin: 0 0 12px; font-size: 1.1rem; }
@@ -609,7 +611,7 @@
           <button class="option" data-correct="false"><span class="letter">D</span><span class="option-text">Notify a supervisor</span></button>
         </div>
         <button class="btn" id="submitBtn" disabled>Submit Answer</button>
-        <div class="feedback" id="feedback">Correct. Immediate washing with soap and water is the first action, followed by notifying a supervisor, incident reporting, and post-exposure evaluation.</div>
+        <div class="feedback" id="feedback"></div>
       </section>
 
       <section id="reading" class="section card reading">
@@ -644,7 +646,7 @@
             <h4>Items to Sort</h4>
             <div class="dropzone" id="activityPool" data-zone="pool">
               <div class="sort-item" draggable="true" data-id="hand-hygiene" data-correct-zone="standard"><span class="dots">⋮⋮</span>Hand hygiene between patients</div>
-              <div class="sort-item dragging" draggable="true" data-id="n95" data-correct-zone="transmission"><span class="dots">⋮⋮</span>N95 respirator use</div>
+              <div class="sort-item" draggable="true" data-id="n95" data-correct-zone="transmission"><span class="dots">⋮⋮</span>N95 respirator use</div>
               <div class="sort-item" draggable="true" data-id="gloves" data-correct-zone="standard"><span class="dots">⋮⋮</span>Gloves for blood contact</div>
               <div class="sort-item" draggable="true" data-id="negative-pressure" data-correct-zone="transmission"><span class="dots">⋮⋮</span>Negative pressure room</div>
               <div class="sort-item" draggable="true" data-id="sharps" data-correct-zone="standard"><span class="dots">⋮⋮</span>Safe sharps disposal</div>
@@ -772,7 +774,21 @@
 
     submitBtn.addEventListener('click', () => {
       if (!selected) return;
-      options.find(o => o.dataset.correct === 'true')?.classList.add('correct');
+      const correctOption = options.find(o => o.dataset.correct === 'true');
+      const isCorrect = selected.dataset.correct === 'true';
+
+      options.forEach(o => o.classList.remove('correct'));
+      correctOption?.classList.add('correct');
+
+      feedback.classList.remove('correct', 'incorrect');
+      if (isCorrect) {
+        feedback.textContent = 'Correct. Immediate washing with soap and water is the first action, followed by notifying a supervisor, incident reporting, and post-exposure evaluation.';
+        feedback.classList.add('correct');
+      } else {
+        feedback.textContent = 'Not quite. The first action is to wash the area immediately with soap and water. Then notify your supervisor and follow post-exposure protocol.';
+        feedback.classList.add('incorrect');
+      }
+
       feedback.classList.add('open');
       submitBtn.disabled = true;
     });
